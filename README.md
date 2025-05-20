@@ -1,48 +1,36 @@
-<img width="500" alt="ViteReactComponentLibrary" src="https://github.com/receter/my-component-library/assets/2504695/dbb53036-d228-477b-8cf8-f61cd6130776">
+# 🚀 My Amazing Product
 
-# A simple (demo) react component library
-This repository was published together with an article on [how to create a react component library](https://dev.to/receter/how-to-create-a-react-component-library-using-vites-library-mode-4lma) using Vite's library mode.
+📦 **Owned by:** [Vu Tri Khoa](https://github.com/khoavutri)(https://gitlab.com/khoavip07)
 
-Here is another repo that consumes this libarary: https://github.com/receter/my-component-library-consumer
+## 🔧 Node.js Version
 
-The demo library on npm: https://www.npmjs.com/package/@receter/my-component-library
+![Node Version](https://img.shields.io/badge/node-v18.17.1-green)
 
-## Installation
-You can install it with npm (don't expect much fanciness):
+---
+
+## ✨ Features
+
+- ⚡ **High Performance:** Built for speed and scalability.
+- 🛠️ **Ease of Use:** Developer-friendly and easy to set up.
+- 🔒 **Secure:** Follows the latest security best practices.
+
+---
+
+## 📜 Installation
+
 ```bash
-npm i @receter/my-component-library
+# Clone the repository
+git clone https://gitlab.com/khoavip07/react-base-main.git
+
+# Install dependencies
+npm install
+
+# Start the application
+npm start
 ```
 
-## Usage
-```javascript
-import { Button, Label, Input } from '@receter/my-component-library';
-```
-See this file for an example on using this library: https://github.com/receter/my-component-library-consumer/blob/main/src/App.tsx
+## 📞 Support
 
-## React + TypeScript + Vite
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-### Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-   parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-   },
-```
-
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+💌 **Email:** Reach out to me at [khoavutri@gmail.com](mailto:khoavutri@gmail.com)  
+🐛 **GitHub Issues:** Found a bug or have a suggestion? [Open an issue here](https://github.com/khoavutri)  
+💬 **Community Chat:** Join the discussion on [Facebook](https://www.facebook.com/khoa.tri.365.org)
