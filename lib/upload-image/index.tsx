@@ -5,6 +5,13 @@ import { useEffect, useState } from 'react';
 const DB_NAME = 'khoa-dev';
 const STORE_NAME = 'images';
 
+const enum ETypeImage {
+  LOCAL_ONLY = "local-only",
+  UPLOADING = "uploading",
+  SYNCED = "synced",
+  ERROR = "error"
+}
+
 async function getDB() {
   return openDB(DB_NAME, 1, {
     upgrade(db) {
@@ -18,6 +25,7 @@ async function getDB() {
 interface ImageItem {
   id: string;
   blob: Blob;
+  type: ETypeImage
 }
 
 export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) => {
@@ -38,17 +46,23 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
     }
     setImages(allImages);
   };
-
   const saveImage = async (file: File) => {
     const db = await getDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
 
+    let tx = db.transaction(STORE_NAME, 'readwrite');
+    let store = tx.objectStore(STORE_NAME);
     const id = Date.now().toString();
-    await store.put({ id, blob: file });
+    const newImage = { id, blob: file, type: ETypeImage.LOCAL_ONLY }
+    await store.put(newImage);
     await tx.done;
+    setImages([...images, newImage])
 
-    await loadImages();
+    await uploadToServer(file, async () => {
+      let tx = db.transaction(STORE_NAME, 'readwrite');
+      let store = tx.objectStore(STORE_NAME);
+      await store.delete(id);
+      await tx.done;
+    });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,7 +72,47 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
     }
   };
 
+  const uploadToServer = async (data: any, callBack: any) => {
+    const form = new FormData();
+    form.append("photo", data);
+
+    try {
+      const res = await fetch("http://localhost:4000/api/upload", {
+        method: "POST",
+        body: form,
+      });
+
+      if (!res.ok) {
+        throw new Error(`Upload failed with status: ${res.status}`);
+      }
+
+      const result = await res.json();
+      if (result && result.message) {
+        callBack()
+      }
+    } catch (error) {
+      console.error("Upload failed:", error);
+    }
+  };
+
   useEffect(() => {
+    const registerServiceWorkerAndSync = async () => {
+      if ('serviceWorker' in navigator && 'SyncManager' in window) {
+        try {
+          const registration = await navigator.serviceWorker.register('/sw.js');
+          console.log('✅ Service Worker registered:', registration);
+
+          const readyReg: any = await navigator.serviceWorker.ready;
+          await readyReg.sync.register('sync-images');
+        } catch (error) {
+          console.error('❌ Đăng ký Service Worker hoặc Sync thất bại:', error);
+        }
+      } else {
+        console.warn('⚠️ Trình duyệt không hỗ trợ Service Worker hoặc Background Sync');
+      }
+    };
+
+    registerServiceWorkerAndSync();
     loadImages();
   }, []);
 
