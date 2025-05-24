@@ -148,6 +148,9 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
       await Promise.all(removeListImages.map(item => removeImage(item.id)));
 
       setImages([...filteredLocal, ...convertImage]);
+      console.log(convertImage);
+
+
     } catch (error) {
       console.error("Lỗi khi lấy dữ liệu từ IndexedDB:", error);
     }
@@ -169,9 +172,22 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
       }
     };
 
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'SYNC_COMPLETED') {
+        fetchData();
+      }
+    };
+
+    navigator.serviceWorker.addEventListener('message', handleMessage);
+
     fetchData();
     registerServiceWorkerAndSync();
+
+    return () => {
+      navigator.serviceWorker.removeEventListener('message', handleMessage);
+    };
   }, []);
+
 
   return (
     <div className={`${className} ${styles.uploadImage}`} {...restProps}>

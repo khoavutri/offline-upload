@@ -6,6 +6,12 @@ self.addEventListener('sync', event => {
   }
 });
 
+self.clients.matchAll().then(clients => {
+  clients.forEach(client => {
+    client.postMessage({ type: 'SYNC_COMPLETED' });
+  });
+});
+
 async function updateImage(db, image, newData) {
   try {
     const tx = db.transaction('images', 'readwrite');
@@ -19,6 +25,8 @@ async function updateImage(db, image, newData) {
 }
 
 async function syncImages() {
+  console.log("sync");
+
   try {
     const db = await idb.openDB('khoa-dev', 1, {
       upgrade(db) {
@@ -80,6 +88,10 @@ async function syncImages() {
         }
       }
     }
+    const clients = await self.clients.matchAll();
+    clients.forEach(client => {
+      client.postMessage({ type: 'SYNC_COMPLETED' });
+    });
   } catch (error) {
     console.error('Sync process failed:', error);
   }
