@@ -1,6 +1,6 @@
 import { openDB } from 'idb';
 import styles from './styles.module.css'
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 const DB_NAME = 'khoa-dev';
 const STORE_NAME = 'images';
@@ -24,7 +24,9 @@ async function getDB() {
 
 interface ImageItem {
   id: string;
-  blob: Blob;
+  blob?: Blob;
+  url?: string;
+  filename?: string;
   type: ETypeImage
 }
 
@@ -32,38 +34,62 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
   const { className, ...restProps } = props
   const [images, setImages] = useState<ImageItem[]>([]);
 
-  const loadImages = async () => {
+  const getAllImages = async () => {
     const db = await getDB();
     const tx = db.transaction(STORE_NAME, 'readonly');
     const store = tx.objectStore(STORE_NAME);
-
-    const allImages: ImageItem[] = [];
-    let cursor = await store.openCursor();
-
-    while (cursor) {
-      allImages.push(cursor.value);
-      cursor = await cursor.continue();
-    }
-    setImages(allImages);
-  };
-  const saveImage = async (file: File) => {
-    const db = await getDB();
-
-    let tx = db.transaction(STORE_NAME, 'readwrite');
-    let store = tx.objectStore(STORE_NAME);
-    const id = Date.now().toString();
-    const newImage = { id, blob: file, type: ETypeImage.LOCAL_ONLY }
-    await store.put(newImage);
+    const images = await store.getAll();
     await tx.done;
-    setImages([...images, newImage])
+    return images;
+  }
 
-    await uploadToServer(file, async () => {
-      let tx = db.transaction(STORE_NAME, 'readwrite');
-      let store = tx.objectStore(STORE_NAME);
-      await store.delete(id);
-      await tx.done;
-    });
+  const createImage = async (image: ImageItem) => {
+    const db = await getDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    await store.add(image);
+    await tx.done;
+  }
+
+  const updateImage = async (image: ImageItem) => {
+    const db = await getDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    await store.put(image);
+    await tx.done;
+  }
+
+  const removeImage = async (id: string) => {
+    const db = await getDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    await store.delete(id);
+    await tx.done;
+  }
+
+  const triggerSync = async () => {
+    if ('serviceWorker' in navigator && 'SyncManager' in window) {
+      try {
+        const registration: any = await navigator.serviceWorker.ready;
+        await registration.sync.register('sync-images');
+        console.log('Sync registered');
+      } catch (error) {
+        console.error('Sync registration failed:', error);
+      }
+    }
+  }
+
+  const saveImage = async (file: File) => {
+    const id = Date.now().toString();
+    const renamedFile = new File([file], `${id}.${file.name.split('.').pop()}`, { type: file.type });
+
+    const newImage = { id, blob: renamedFile, type: ETypeImage.LOCAL_ONLY }
+    await createImage(newImage);
+    setImages(prev => [...prev, newImage]);
+
+    await triggerSync();
   };
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -88,13 +114,44 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
 
       const result = await res.json();
       if (result && result.message) {
-        callBack()
       }
     } catch (error) {
       console.error("Upload failed:", error);
     }
   };
 
+  const fetchData = async () => {
+    try {
+      const localImage = await getAllImages();
+      const cloudData = await fetch("http://localhost:4000/api/photos");
+      const cloudImage = await cloudData.json();
+
+      const convertImage = cloudImage.map((item: any) => ({
+        id: item.filename.replace(/\.[^/.]+$/, ''),
+        url: item.url,
+        type: ETypeImage.SYNCED,
+      }));
+
+      const cloudIds = new Set(convertImage.map((img: any) => img.id));
+
+      const removeListImages: ImageItem[] = [];
+      const filteredLocal: ImageItem[] = [];
+
+      for (const item of localImage) {
+        if (cloudIds.has(item.id)) {
+          removeListImages.push(item);
+        } else {
+          filteredLocal.push(item);
+        }
+      }
+
+      await Promise.all(removeListImages.map(item => removeImage(item.id)));
+
+      setImages([...filteredLocal, ...convertImage]);
+    } catch (error) {
+      console.error("Lỗi khi lấy dữ liệu từ IndexedDB:", error);
+    }
+  };
   useEffect(() => {
     const registerServiceWorkerAndSync = async () => {
       if ('serviceWorker' in navigator && 'SyncManager' in window) {
@@ -102,8 +159,8 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
           const registration = await navigator.serviceWorker.register('/sw.js');
           console.log('✅ Service Worker registered:', registration);
 
-          const readyReg: any = await navigator.serviceWorker.ready;
-          await readyReg.sync.register('sync-images');
+          // Trigger initial sync
+          await triggerSync();
         } catch (error) {
           console.error('❌ Đăng ký Service Worker hoặc Sync thất bại:', error);
         }
@@ -112,8 +169,8 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
       }
     };
 
+    fetchData();
     registerServiceWorkerAndSync();
-    loadImages();
   }, []);
 
   return (
@@ -121,15 +178,37 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
       <input type="file" accept="image/*" multiple onChange={handleFileChange} />
       <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         {images.map(image => {
-          const url = URL.createObjectURL(image.blob);
+          const url = image.blob ? URL.createObjectURL(image.blob) : `http://localhost:4000${image.url}`;
           return (
-            <img
-              key={image.id}
-              src={url}
-              alt="Uploaded preview"
-              style={{ maxWidth: 150, maxHeight: 150, objectFit: 'cover' }}
-              onLoad={() => URL.revokeObjectURL(url)}
-            />
+            <div style={{ position: 'relative' }} key={image.id}>
+              <img
+                src={url}
+                alt="Uploaded preview"
+                style={{ maxWidth: 150, maxHeight: 150, objectFit: 'cover' }}
+                onLoad={() => URL.revokeObjectURL(url)}
+              />
+              <span style={{
+                position: "absolute", top: 5, right: 5, color: (() => {
+                  switch (image.type) {
+                    case ETypeImage.LOCAL_ONLY:
+                      return 'red';
+                    case ETypeImage.UPLOADING:
+                      return 'orange';
+                    case ETypeImage.SYNCED:
+                      return 'green';
+                    case ETypeImage.ERROR:
+                      return 'black';
+                    default:
+                      return 'black';
+                  }
+                })(),
+                textShadow: '0 0 4px rgba(0, 0, 0, 0.7)',
+                fontWeight: 'bold',
+                padding: '2px 6px',
+                borderRadius: 4,
+                fontSize: 12
+              }}>{image.type}</span>
+            </div>
           );
         })}
       </div>
