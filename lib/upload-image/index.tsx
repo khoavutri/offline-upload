@@ -172,22 +172,24 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
       }
     };
 
+    fetchData();
+    registerServiceWorkerAndSync();
+  }, []);
+
+  useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'SYNC_COMPLETED') {
-        fetchData();
+      if (event.data?.type === 'SYNC_COMPLETED' && event.data.changed) {
+        console.log(event.data);
+        setImages(prev => prev.map(image => ({ ...image, type: event.data.changed.id === image.id ? event.data.changed.type : image.type })));
       }
     };
 
     navigator.serviceWorker.addEventListener('message', handleMessage);
 
-    fetchData();
-    registerServiceWorkerAndSync();
-
     return () => {
       navigator.serviceWorker.removeEventListener('message', handleMessage);
     };
   }, []);
-
 
   return (
     <div className={`${className} ${styles.uploadImage}`} {...restProps}>

@@ -6,11 +6,6 @@ self.addEventListener('sync', event => {
   }
 });
 
-self.clients.matchAll().then(clients => {
-  clients.forEach(client => {
-    client.postMessage({ type: 'SYNC_COMPLETED' });
-  });
-});
 
 async function updateImage(db, image, newData) {
   try {
@@ -24,9 +19,14 @@ async function updateImage(db, image, newData) {
   }
 }
 
-async function syncImages() {
-  console.log("sync");
+async function notifyClients(data) {
+  const clients = await self.clients.matchAll();
+  clients.forEach(client => {
+    client.postMessage(data);
+  });
+}
 
+async function syncImages() {
   try {
     const db = await idb.openDB('khoa-dev', 1, {
       upgrade(db) {
@@ -50,11 +50,12 @@ async function syncImages() {
       return;
     }
 
-    const localImages = images.filter(img => img.type === 'local-only' || img.type === 'error');
+    const localImages = images.filter(img => img.type === 'local-only' || img.type === 'error' || img.type === 'uploading');
 
     for (const image of localImages) {
       try {
         await updateImage(db, image, { type: 'uploading' });
+        await notifyClients({ type: 'SYNC_COMPLETED', changed: { id: image.id, type: 'uploading' } });
 
         if (!image.blob) {
           throw new Error('Image blob missing or invalid');
@@ -79,19 +80,18 @@ async function syncImages() {
           url: result.url,
           filename: result.filename,
         });
+        await notifyClients({ type: 'SYNC_COMPLETED', changed: { id: image.id, type: 'synced' } });
+
       } catch (error) {
         console.error('Sync failed for image:', image.id, error);
         try {
           await updateImage(db, image, { type: 'error' });
+          await notifyClients({ type: 'SYNC_COMPLETED', changed: { id: image.id, type: 'error' } });
         } catch (e) {
           console.error('Failed to update image status to error:', image.id, e);
         }
       }
     }
-    const clients = await self.clients.matchAll();
-    clients.forEach(client => {
-      client.postMessage({ type: 'SYNC_COMPLETED' });
-    });
   } catch (error) {
     console.error('Sync process failed:', error);
   }
