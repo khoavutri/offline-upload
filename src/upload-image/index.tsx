@@ -53,6 +53,14 @@ interface ImageItem {
 //   }
 // };
 
+// const updateImage = async (image: ImageItem) => {
+//   const db = await getDB();
+//   const tx = db.transaction(STORE_NAME, 'readwrite');
+//   const store = tx.objectStore(STORE_NAME);
+//   await store.put(image);
+//   await tx.done;
+// }
+
 export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) => {
   const { className, ...restProps } = props
   const [images, setImages] = useState<ImageItem[]>([]);
@@ -73,13 +81,6 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
     await store.add(image);
     await tx.done;
   }
-  // const updateImage = async (image: ImageItem) => {
-  //   const db = await getDB();
-  //   const tx = db.transaction(STORE_NAME, 'readwrite');
-  //   const store = tx.objectStore(STORE_NAME);
-  //   await store.put(image);
-  //   await tx.done;
-  // }
 
   const removeImage = async (id: string) => {
     const db = await getDB();
@@ -112,14 +113,12 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
     await triggerSync();
   };
 
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
       Array.from(files).forEach(file => saveImage(file));
     }
   };
-
 
   const fetchData = async () => {
     try {
@@ -155,19 +154,32 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
   };
 
   const registerPeriodicCleanup = async () => {
-    const registration: any = await navigator.serviceWorker.ready;
-    if ('periodicSync' in registration) {
-      try {
-        await registration.periodicSync.register('cleanup-synced-images', {
-          minInterval: 24 * 60 * 60 * 1000,
+    if (!('serviceWorker' in navigator)) {
+      console.warn('Service Worker not supported');
+      return;
+    }
+    const registration = await navigator.serviceWorker.ready;
+
+    if (!('periodicSync' in registration)) {
+      console.warn('Periodic Background Sync not supported.');
+      return;
+    }
+
+    try {
+      const permissionStatus: any = await (navigator.permissions as any).query({ name: 'periodic-background-sync' });
+      if (permissionStatus.state === 'granted') {
+        await (registration.periodicSync as any).register('cleanup-synced-images', {
+          minInterval: 24 * 60 * 60 * 1000, // 1 day
         });
-      } catch (e) {
-        console.error('Periodic sync failed:', e);
+        console.log('Periodic sync registered successfully.');
+      } else {
+        console.warn('Periodic background sync permission not granted:', permissionStatus.state);
       }
-    } else {
-      console.warn('Periodic sync not supported');
+    } catch (e) {
+      console.error('Periodic sync registration failed:', e);
     }
   };
+
 
   useEffect(() => {
     const registerServiceWorkerAndSync = async () => {
@@ -176,7 +188,6 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
           const registration = await navigator.serviceWorker.register('/sw.js');
           console.log('✅ Service Worker registered:', registration);
 
-          // Trigger initial sync
           await triggerSync();
           await registerPeriodicCleanup();
         } catch (error) {
@@ -204,9 +215,8 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
   }, []);
 
   return (
-    <div className={`${className} ${styles.uploadImage}`} {...restProps}>
-      <div style={{ display: 'flex', gap: 10 }}>
-        {/* <input type="file" accept="image/*" multiple onChange={handleFileChange} /> */}
+    <div className={`${className || ""} ${styles.uploadImage}`} {...restProps}>
+      <div style={{ display: 'flex', gap: 18 }}>
         <button onClick={() => {
           const input: any = document.createElement("input");
           input.type = "file";
@@ -220,11 +230,12 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
 
           input.click();
         }}>Chọn ảnh</button>
+
         <button onClick={async () => {
           await triggerSync()
         }}>Đẩy tay</button>
       </div>
-      <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+      <div style={{ marginTop: 20, display: 'flex', gap: 15, flexWrap: 'wrap' }}>
         {images.map(image => {
           const url = image.blob ? URL.createObjectURL(image.blob) : `${SERVER}${image.url}`;
           return (

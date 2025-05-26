@@ -1,5 +1,5 @@
-import { UploadImage } from '../lib/main';
 import './App.css';
+import { UploadImage } from './upload-image';
 
 function App() {
 

@@ -13,7 +13,7 @@ export default defineConfig({
     libInjectCss(),
     dts({ include: ['lib'] })
   ],
-  server: { port: 3000, strictPort: true },
+  server: { port: 3006, strictPort: true },
   build: {
     copyPublicDir: false,
     lib: {
