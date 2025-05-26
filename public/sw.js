@@ -1,93 +1,193 @@
-importScripts("https://unpkg.com/idb@7.0.2/build/umd.js");
+importScripts("/idb.umd.js");
 
 const DB_NAME = "khoa-dev";
 const STORE_NAME = "images";
-const ETypeImage = {
-  LOCAL_ONLY: "local-only",
-  UPLOADING: "uploading",
-  SYNCED: "synced",
-  ERROR: "error",
-};
 
-// Khởi tạo IndexedDB
-const getDB = async () => {
-  return idb.openDB(DB_NAME, 1, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, {
-          keyPath: "id",
-          autoIncrement: true,
-        });
-      }
-    },
-  });
-};
+self.addEventListener("sync", (event) => {
+  if (event.tag === "sync-images") {
+    event.waitUntil(syncImages());
+  }
+});
 
-const uploadToServer = async (data) => {
-  const form = new FormData();
-  form.append("photo", data);
+self.addEventListener("periodicsync", (event) => {
+  if (event.tag === "cleanup-synced-images") {
+    event.waitUntil(syncImages());
+  }
+});
 
+async function updateImage(db, image, newData) {
   try {
-    const res = await fetch("http://localhost:4000/api/upload", {
-      method: "POST",
-      body: form,
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    const store = tx.objectStore(STORE_NAME);
+    await store.put({ ...image, ...newData });
+    await tx.done;
+  } catch (error) {
+    console.error("Failed to update image in IndexedDB:", image.id, error);
+    throw error;
+  }
+}
+
+async function deleteImage(db, id) {
+  try {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    const store = tx.objectStore(STORE_NAME);
+    await store.delete(id);
+    await tx.done;
+  } catch (error) {
+    console.error("Failed to delete image in IndexedDB:", id, error);
+    throw error;
+  }
+}
+
+async function notifyClients(data) {
+  const clients = await self.clients.matchAll();
+  clients.forEach((client) => {
+    client.postMessage(data);
+  });
+}
+
+async function syncImages() {
+  try {
+    const db = await idb.openDB(DB_NAME, 1, {
+      upgrade(db) {
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME, { keyPath: "id" });
+        }
+      },
     });
 
-    if (!res.ok) {
-      throw new Error(`Upload failed with status: ${res.status}`);
+    // Lấy tất cả images
+    let images;
+    {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const store = tx.objectStore(STORE_NAME);
+      images = await store.getAll();
+      await tx.done;
     }
 
-    const result = await res.json();
-    console.log("Response:", result);
-  } catch (error) {
-    console.error("Upload failed:", error);
-  }
-};
+    if (!Array.isArray(images)) {
+      console.warn(
+        "No images found or invalid data returned from IndexedDB",
+        images
+      );
+      return;
+    }
 
-self.addEventListener("install", (event) => {
-  console.log("Service Worker: Installed");
-});
-
-self.addEventListener("activate", (event) => {
-  console.log("Service Worker: Activated");
-});
-
-self.addEventListener("sync", async (event) => {
-  console.log(`Successfully uploaded image: ${"unknown"}`);
-  const db = await getDB();
-  const tx = db.transaction(STORE_NAME, "readonly");
-  const store = tx.objectStore(STORE_NAME);
-
-  const allImages = [];
-  let cursor = await store.openCursor();
-
-  while (cursor) {
-    allImages.push(cursor.value);
-    cursor = await cursor.continue();
-  }
-
-  for (const image of allImages) {
-    try {
-      await uploadToServer(image.blob);
-      const writeTx = db.transaction(STORE_NAME, "readwrite");
-      const writeStore = writeTx.objectStore(STORE_NAME);
-      await writeStore.delete(image.id);
-      await writeTx.done;
-      console.log(`Deleted image ${image.id || "unknown"} from store`);
-    } catch (error) {
-      console.error(`Failed to upload image: ${image.id || "unknown"}`, error);
+    const syncedImages = images.filter((img) => img.type === "synced");
+    for (const img of syncedImages) {
       try {
-        const writeTx = db.transaction(STORE_NAME, "readwrite");
-        const writeStore = writeTx.objectStore(STORE_NAME);
-        await writeStore.put({ ...image, type: "ERROR" });
-        await writeTx.done;
-        console.log(`Updated image ${image.id || "unknown"} to type "ERROR"`);
-      } catch (writeError) {
-        console.error(
-          `Failed to update image ${image.id || "unknown"} to ERROR:`,
-          writeError
-        );
+        await deleteImage(db, img.id);
+        console.log("Deleted synced image:", img.id);
+      } catch (e) {
+        console.warn("Failed to delete synced image:", img.id, e);
       }
     }
+
+    const localImages = images.filter(
+      (img) =>
+        img.type === "local-only" ||
+        img.type === "error" ||
+        img.type === "uploading"
+    );
+
+    for (const image of localImages) {
+      try {
+        await updateImage(db, image, { type: "uploading" });
+        await notifyClients({
+          type: "SYNC_COMPLETED",
+          changed: { id: image.id, type: "uploading" },
+        });
+
+        if (!image.blob) {
+          throw new Error("Image blob missing or invalid");
+        }
+
+        const formData = new FormData();
+        formData.append("photo", image.blob);
+
+        const response = await fetch("http://localhost:4000/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Upload failed with status: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        await updateImage(db, image, {
+          type: "synced",
+          url: result.url,
+          filename: result.filename,
+        });
+        await notifyClients({
+          type: "SYNC_COMPLETED",
+          changed: { id: image.id, type: "synced" },
+        });
+        await deleteImage(db, image.id);
+      } catch (error) {
+        console.error("Sync failed for image:", image.id, error);
+        try {
+          await updateImage(db, image, { type: "error" });
+          await notifyClients({
+            type: "SYNC_COMPLETED",
+            changed: { id: image.id, type: "error" },
+          });
+        } catch (e) {
+          console.error("Failed to update image status to error:", image.id, e);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Sync process failed:", error);
   }
-});
+}
+
+async function cleanupSyncedImages() {
+  try {
+    const db = await idb.openDB(DB_NAME, 1);
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    const store = tx.objectStore(STORE_NAME);
+    const allImages = await store.getAll();
+
+    const syncedImages = allImages.filter((img) => img.type === "synced");
+    const other = allImages.filter((img) => img.type !== "synced");
+
+    for (const image of syncedImages) {
+      await store.delete(image.id);
+    }
+
+    for (const image of other) {
+      const formData = new FormData();
+      formData.append("photo", image.blob);
+
+      const response = await fetch("http://localhost:4000/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed with status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      await updateImage(db, image, {
+        type: "synced",
+        url: result.url,
+        filename: result.filename,
+      });
+      await notifyClients({
+        type: "SYNC_COMPLETED",
+        changed: { id: image.id, type: "synced" },
+      });
+      await deleteImage(db, image.id);
+    }
+
+    await tx.done;
+    console.log(`Cleaned up ${syncedImages.length} synced images`);
+  } catch (error) {
+    console.error("Failed to cleanup synced images:", error);
+  }
+}
