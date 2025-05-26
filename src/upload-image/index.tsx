@@ -5,6 +5,7 @@ import styles from './styles.module.css';
 const DB_NAME = 'khoa-dev';
 const STORE_NAME = 'images';
 const SERVER = "http://localhost:4000"
+
 const enum ETypeImage {
   LOCAL_ONLY = "local-only",
   UPLOADING = "uploading",
@@ -30,36 +31,6 @@ interface ImageItem {
   type: ETypeImage
 }
 
-
-// const uploadToServer = async (data: any, callBack: any) => {
-//   const form = new FormData();
-//   form.append("photo", data);
-
-//   try {
-//     const res = await fetch("http://localhost:4000/api/upload", {
-//       method: "POST",
-//       body: form,
-//     });
-
-//     if (!res.ok) {
-//       throw new Error(`Upload failed with status: ${res.status}`);
-//     }
-
-//     const result = await res.json();
-//     if (result && result.message) {
-//     }
-//   } catch (error) {
-//     console.error("Upload failed:", error);
-//   }
-// };
-
-// const updateImage = async (image: ImageItem) => {
-//   const db = await getDB();
-//   const tx = db.transaction(STORE_NAME, 'readwrite');
-//   const store = tx.objectStore(STORE_NAME);
-//   await store.put(image);
-//   await tx.done;
-// }
 
 export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) => {
   const { className, ...restProps } = props
@@ -153,30 +124,25 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
     }
   };
 
-  const registerPeriodicCleanup = async () => {
-    if (!('serviceWorker' in navigator)) {
-      console.warn('Service Worker not supported');
-      return;
-    }
-    const registration = await navigator.serviceWorker.ready;
-
-    if (!('periodicSync' in registration)) {
-      console.warn('Periodic Background Sync not supported.');
-      return;
-    }
-
+  const registerPeriodicCleanup = async (): Promise<void> => {
     try {
-      const permissionStatus: any = await (navigator.permissions as any).query({ name: 'periodic-background-sync' });
-      if (permissionStatus.state === 'granted') {
-        await (registration.periodicSync as any).register('cleanup-synced-images', {
-          minInterval: 24 * 60 * 60 * 1000, // 1 day
+      const registration = await navigator.serviceWorker.ready;
+
+      if ('periodicSync' in registration) {
+        const periodicSync = (registration as ServiceWorkerRegistration & {
+          periodicSync: {
+            register(tag: string, options?: { minInterval?: number }): Promise<void>;
+          };
+        }).periodicSync;
+
+        await periodicSync.register('cleanup-synced-images', {
+          minInterval: 24 * 60 * 60 * 1000, // 1 ngày
         });
-        console.log('Periodic sync registered successfully.');
       } else {
-        console.warn('Periodic background sync permission not granted:', permissionStatus.state);
+        console.warn('periodicSync is not supported in this browser');
       }
-    } catch (e) {
-      console.error('Periodic sync registration failed:', e);
+    } catch (error) {
+      console.error('Error during periodic sync registration:', error);
     }
   };
 
@@ -187,7 +153,6 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
         try {
           const registration = await navigator.serviceWorker.register('/sw.js');
           console.log('✅ Service Worker registered:', registration);
-
           await triggerSync();
           await registerPeriodicCleanup();
         } catch (error) {
@@ -217,6 +182,19 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
   return (
     <div className={`${className || ""} ${styles.uploadImage}`} {...restProps}>
       <div style={{ display: 'flex', gap: 18 }}>
+        <button onClick={async () => {
+          try {
+            const registration = await navigator.serviceWorker.ready;
+            await (registration as any).periodicSync.register('cleanup-synced-images', {
+              minInterval: 24 * 60 * 60 * 1000,
+            });
+            alert('Đã đăng ký periodic sync!');
+          } catch (error) {
+            alert('Lỗi đăng ký periodic sync: ' + error);
+          }
+        }}>
+          Kích hoạt Periodic Sync
+        </button>
         <button onClick={() => {
           const input: any = document.createElement("input");
           input.type = "file";
