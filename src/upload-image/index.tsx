@@ -4,7 +4,7 @@ import styles from './styles.module.css';
 
 const DB_NAME = 'khoa-dev';
 const STORE_NAME = 'images';
-const SERVER = "http://localhost:4000"
+const SERVER = "https://image-fake-upload.onrender.com"
 
 const enum ETypeImage {
   LOCAL_ONLY = "local-only",
@@ -123,7 +123,7 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
   const fetchData = async () => {
     try {
       const localImage = await getAllImages();
-      const cloudData = await fetch("http://localhost:4000/api/photos");
+      const cloudData = await fetch(`${SERVER}/api/photos`);
       const cloudImage = await cloudData.json();
 
       const convertImage = cloudImage.map((item: any) => ({

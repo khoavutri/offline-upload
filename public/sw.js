@@ -105,10 +105,13 @@ async function syncImages() {
         const formData = new FormData();
         formData.append("photo", image.blob);
 
-        const response = await fetch("http://localhost:4000/api/upload", {
-          method: "POST",
-          body: formData,
-        });
+        const response = await fetch(
+          "https://image-fake-upload.onrender.com:4000/api/upload",
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
 
         if (!response.ok) {
           throw new Error(`Upload failed with status: ${response.status}`);

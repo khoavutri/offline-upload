@@ -10,5 +10,5 @@ import { libInjectCss } from 'vite-plugin-lib-inject-css'
 
 export default defineConfig({
   plugins: [react()],
-  server: { port: 3006, strictPort: true },
+  server: { port: 3007, strictPort: true },
 })
