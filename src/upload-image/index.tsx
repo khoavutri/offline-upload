@@ -84,6 +84,35 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
     await triggerSync();
   };
 
+  const clearImages = async () => {
+    try {
+      const db = await getDB();
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      await store.clear();
+      await tx.done;
+
+      const response = await fetch(`${SERVER}/api/delete/photos`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Lỗi khi xóa server:', errorData);
+        alert('Xóa trên server thất bại: ' + (errorData.error || 'Unknown error'));
+        return;
+      }
+
+      setImages([]);
+
+      alert('Đã xóa tất cả ảnh ở local và server');
+    } catch (error) {
+      console.error('Lỗi khi xóa ảnh:', error);
+      alert('Xảy ra lỗi khi xóa ảnh');
+    }
+  };
+
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
@@ -182,19 +211,6 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
   return (
     <div className={`${className || ""} ${styles.uploadImage}`} {...restProps}>
       <div style={{ display: 'flex', gap: 18 }}>
-        <button onClick={async () => {
-          try {
-            const registration = await navigator.serviceWorker.ready;
-            await (registration as any).periodicSync.register('cleanup-synced-images', {
-              minInterval: 24 * 60 * 60 * 1000,
-            });
-            alert('Đã đăng ký periodic sync!');
-          } catch (error) {
-            alert('Lỗi đăng ký periodic sync: ' + error);
-          }
-        }}>
-          Kích hoạt Periodic Sync
-        </button>
         <button onClick={() => {
           const input: any = document.createElement("input");
           input.type = "file";
@@ -211,7 +227,14 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
 
         <button onClick={async () => {
           await triggerSync()
-        }}>Đẩy tay</button>
+        }}>Đẩy thủ công</button>
+
+        <button
+          onClick={async () => {
+            await clearImages()
+          }}
+          disabled={images.some(item => item.type !== ETypeImage.SYNCED)}
+        >Clear Images</button>
       </div>
       <div style={{ marginTop: 20, display: 'flex', gap: 15, flexWrap: 'wrap' }}>
         {images.map(image => {
