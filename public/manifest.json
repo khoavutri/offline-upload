@@ -1,6 +1,6 @@
 {
-  "name": "Periodic Background Sync",
-  "short_name": "Periodic Sync",
+  "name": "Offline Upload",
+  "short_name": "Offline Upload",
   "start_url": "/",
   "background_color": "#fff",
   "display": "standalone",
