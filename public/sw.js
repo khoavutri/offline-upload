@@ -115,17 +115,20 @@ async function syncImages() {
         }
 
         const result = await response.json();
-
-        await updateImage(db, image, {
-          type: "synced",
-          url: result.url,
-          filename: result.filename,
-        });
-        await notifyClients({
-          type: "SYNC_COMPLETED",
-          changed: { id: image.id, type: "synced" },
-        });
-        await deleteImage(db, image.id);
+        if (result && result.url) {
+          await notifyClients({
+            type: "SYNC_COMPLETED",
+            changed: { id: image.id, type: "synced" },
+          });
+          await updateImage(db, image, {
+            type: "synced",
+            url: result.url,
+            filename: result.filename,
+          });
+          await deleteImage(db, image.id);
+        } else {
+          await updateImage(db, image, { type: "error" });
+        }
       } catch (error) {
         console.error("Sync failed for image:", image.id, error);
         try {
