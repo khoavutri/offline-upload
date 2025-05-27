@@ -23,6 +23,7 @@
 - 🌐 **Hỗ trợ CORS và xử lý lỗi mạng hiệu quả.**
 - ⚡ **Hiệu năng cao** và dễ dàng mở rộng.
 - 🔒 **Bảo mật** tuân thủ các chuẩn hiện đại.
+- 🖥️ **Tối ưu trải nghiệm trên PC:** Giao diện trực quan, dễ nhìn, dễ sử dụng trên màn hình lớn, giúp người dùng dễ dàng quản lý và upload ảnh.
 
 ---
 
@@ -37,4 +38,11 @@ npm install
 
 # Khởi động ứng dụng
 npm start
+
+
+## 📞 Support
+
+💌 **Email:** Reach out to me at [khoavutri@gmail.com](mailto:khoavutri@gmail.com)
+🐛 **GitHub Issues:** Found a bug or have a suggestion? [Open an issue here](https://github.com/khoavutri)
+💬 **Community Chat:** Join the discussion on [Facebook](https://www.facebook.com/khoa.tri.365.org)
 ```
