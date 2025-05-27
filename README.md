@@ -21,6 +21,14 @@
 
 ---
 
+## ⚠️ Lưu ý quan trọng
+
+📌 **Ứng dụng hoạt động tối ưu nhất trên trình duyệt máy tính (PC)** với đầy đủ hỗ trợ cho **Service Worker** và **IndexedDB**.  
+📱 **Trên thiết bị di động**, do hạn chế của một số trình duyệt, **việc upload ảnh có thể gặp lỗi hoặc không khả dụng khi offline**.  
+🔧 Khuyến nghị sử dụng Chrome, Edge hoặc Firefox phiên bản mới nhất trên desktop để có trải nghiệm ổn định nhất.
+
+---
+
 ## 🔗 Demo
 
 Bạn có thể trải nghiệm trực tiếp ứng dụng tại đây:  
