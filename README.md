@@ -40,7 +40,7 @@ Bạn có thể trải nghiệm trực tiếp ứng dụng tại đây:
 
 ```bash
 # Clone repository
-git clone https://gitlab.com/khoavip07/react-base-main.git
+git clone https://github.com/khoavutri/offline-upload.git
 
 # Cài đặt dependencies
 npm install
