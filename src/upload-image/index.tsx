@@ -155,25 +155,28 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
 
   const registerPeriodicCleanup = async (): Promise<void> => {
     try {
-      const registration = await navigator.serviceWorker.ready;
+      const registration: any = await navigator.serviceWorker.ready;
 
       if ('periodicSync' in registration) {
-        const periodicSync = (registration as ServiceWorkerRegistration & {
-          periodicSync: {
-            register(tag: string, options?: { minInterval?: number }): Promise<void>;
-          };
-        }).periodicSync;
-
-        await periodicSync.register('cleanup-synced-images', {
-          minInterval: 24 * 60 * 60 * 1000, // 1 ngày
+        await registration.periodicSync.register({
+          tag: 'cleanup-synced-images',
+          powerState: 'auto',
+          networkState: 'online',
+          allowOnBattery: true,
+          idleRequired: false,
+          maxDelay: 60000,
+          minDelay: 5000,
+          minPeriod: 20000
         });
+        console.log('✅ periodicSync (polyfill) đã được đăng ký');
       } else {
-        console.warn('periodicSync is not supported in this browser');
+        console.warn('❌ periodicSync chưa được hỗ trợ (không có polyfill)');
       }
     } catch (error) {
-      console.error('Error during periodic sync registration:', error);
+      console.error('Lỗi khi đăng ký periodicSync:', error);
     }
   };
+
 
 
   useEffect(() => {
