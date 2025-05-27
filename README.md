@@ -21,6 +21,13 @@
 
 ---
 
+## 🔗 Demo
+
+Bạn có thể trải nghiệm trực tiếp ứng dụng tại đây:  
+[https://upload-image-virid-kappa.vercel.app/](https://upload-image-virid-kappa.vercel.app/)
+
+---
+
 ## 📜 Cài đặt
 
 ```bash
@@ -34,9 +41,10 @@ npm install
 npm start
 
 
+```
+
 ## 📞 Support
 
 💌 **Email:** Reach out to me at [khoavutri@gmail.com](mailto:khoavutri@gmail.com)
 🐛 **GitHub Issues:** Found a bug or have a suggestion? [Open an issue here](https://github.com/khoavutri)
 💬 **Community Chat:** Join the discussion on [Facebook](https://www.facebook.com/khoa.tri.365.org)
-```
