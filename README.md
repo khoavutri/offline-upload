@@ -2,12 +2,6 @@
 
 📦 **Owned by:** [Vu Tri Khoa](https://github.com/khoavutri) | [GitLab](https://gitlab.com/khoavip07)
 
-## 🔧 Node.js Version
-
-![Node Version](https://img.shields.io/badge/node-v18.17.1-green)
-
----
-
 ## 📦 Giới thiệu dự án
 
 **OfflineUpload** là một ứng dụng upload ảnh hiện đại, tận dụng sức mạnh của **Service Worker** và **IndexedDB** để hỗ trợ người dùng upload ảnh ngay cả khi không có kết nối internet. Ảnh được lưu trữ tạm thời trong IndexedDB trên trình duyệt và tự động đồng bộ lên server khi có mạng lại, giúp trải nghiệm mượt mà và tin cậy.
