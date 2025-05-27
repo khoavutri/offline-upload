@@ -177,6 +177,14 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
 
 
   useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'SYNC_COMPLETED' && event.data.changed) {
+        setImages(prev => prev.map(image => ({ ...image, type: event.data.changed.id === image.id ? event.data.changed.type : image.type })));
+      }
+    };
+    navigator.serviceWorker.addEventListener('message', handleMessage);
+
+
     const registerServiceWorkerAndSync = async () => {
       if ('serviceWorker' in navigator && 'SyncManager' in window) {
         try {
@@ -192,16 +200,8 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
       }
     };
 
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'SYNC_COMPLETED' && event.data.changed) {
-        setImages(prev => prev.map(image => ({ ...image, type: event.data.changed.id === image.id ? event.data.changed.type : image.type })));
-      }
-    };
-
-
     fetchData();
     registerServiceWorkerAndSync();
-    navigator.serviceWorker.addEventListener('message', handleMessage);
 
     return () => {
       navigator.serviceWorker.removeEventListener('message', handleMessage);
