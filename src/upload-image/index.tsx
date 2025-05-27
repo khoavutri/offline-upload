@@ -158,16 +158,10 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
       const registration: any = await navigator.serviceWorker.ready;
 
       if ('periodicSync' in registration) {
-        await registration.periodicSync.register({
-          tag: 'cleanup-synced-images',
-          powerState: 'auto',
-          networkState: 'online',
-          allowOnBattery: true,
-          idleRequired: false,
-          maxDelay: 60000,
-          minDelay: 5000,
-          minPeriod: 20000
+        await registration.periodicSync.register('cleanup-synced-images', {
+          minInterval: 24 * 60 * 60 * 1000
         });
+
         console.log('✅ periodicSync (polyfill) đã được đăng ký');
       } else {
         console.warn('❌ periodicSync chưa được hỗ trợ (không có polyfill)');
