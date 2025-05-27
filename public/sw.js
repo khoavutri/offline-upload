@@ -106,7 +106,7 @@ async function syncImages() {
         formData.append("photo", image.blob);
 
         const response = await fetch(
-          "https://image-fake-upload.onrender.com:4000/api/upload",
+          "https://image-fake-upload.onrender.com/api/upload",
           {
             method: "POST",
             body: formData,
