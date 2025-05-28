@@ -153,26 +153,6 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
     }
   };
 
-  const registerPeriodicCleanup = async (): Promise<void> => {
-    try {
-      const registration: any = await navigator.serviceWorker.ready;
-
-      if ('periodicSync' in registration) {
-        await registration.periodicSync.register('cleanup-synced-images', {
-          minInterval: 24 * 60 * 60 * 1000
-        });
-
-        console.log('✅ periodicSync (polyfill) đã được đăng ký');
-      } else {
-        console.warn('❌ periodicSync chưa được hỗ trợ (không có polyfill)');
-      }
-    } catch (error) {
-      console.error('Lỗi khi đăng ký periodicSync:', error);
-    }
-  };
-
-
-
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'SYNC_COMPLETED' && event.data.changed) {
@@ -183,18 +163,7 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
 
 
     const registerServiceWorkerAndSync = async () => {
-      if ('serviceWorker' in navigator && 'SyncManager' in window) {
-        try {
-          const registration = await navigator.serviceWorker.register('/sw.js');
-          console.log('✅ Service Worker registered:', registration);
-          await triggerSync();
-          // await registerPeriodicCleanup();
-        } catch (error) {
-          console.error('❌ Đăng ký Service Worker hoặc Sync thất bại:', error);
-        }
-      } else {
-        console.warn('⚠️ Trình duyệt không hỗ trợ Service Worker hoặc Background Sync');
-      }
+      await triggerSync();
     };
 
     fetchData();
