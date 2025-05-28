@@ -9,6 +9,12 @@ self.addEventListener("sync", (event) => {
   }
 });
 
+self.addEventListener("periodicsync", (event) => {
+  if (event.tag === "cleanup-synced-images") {
+    event.waitUntil(syncImages());
+  }
+});
+
 async function updateImage(db, image, newData) {
   try {
     const tx = db.transaction(STORE_NAME, "readwrite");
