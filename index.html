@@ -39,7 +39,7 @@
               registration.scope
             );
             registration.periodicSync.register('cleanup-synced-images', {
-              minInterval: 24 * 60 * 60 * 1000
+              minInterval: 12 * 60 * 60 * 1000
             });
             if (!navigator.serviceWorker.controller) {
               console.log("Page not yet controlled, reloading...");
