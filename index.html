@@ -21,6 +21,7 @@
             registration.periodicSync.register('cleanup-synced-images', {
               minInterval: 12 * 60 * 60 * 1000
             });
+            registration.sync.register('sync-images');
             console.log(
               "Service Worker registered with scope:",
               registration.scope
