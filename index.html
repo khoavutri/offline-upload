@@ -12,6 +12,27 @@
 <body>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker
+          .register("/sw.js", { scope: "/" })
+          .then((registration) => {
+            console.log(
+              "Service Worker registered with scope:",
+              registration.scope
+            );
+            if (!navigator.serviceWorker.controller) {
+              console.log("Page not yet controlled, reloading...");
+              window.location.reload();
+            }
+          })
+          .catch((error) => {
+            console.error("Service Worker registration failed:", error);
+          });
+      });
+    }
+  </script>
 </body>
 
 </html>

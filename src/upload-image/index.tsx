@@ -4,7 +4,7 @@ import styles from './styles.module.css';
 
 const DB_NAME = 'khoa-dev';
 const STORE_NAME = 'images';
-const SERVER = "https://image-fake-upload.onrender.com"
+const SERVER = "https://image-fake-upload.onrender.com";
 
 const enum ETypeImage {
   LOCAL_ONLY = "local-only",
