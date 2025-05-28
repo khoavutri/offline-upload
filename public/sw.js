@@ -140,6 +140,8 @@ async function syncImages() {
             type: "SYNC_COMPLETED",
             changed: { id: image.id, type: "error" },
           });
+          const registration = await navigator.serviceWorker.ready;
+          await registration.sync.register("sync-images");
         } catch (e) {
           console.error("Failed to update image status to error:", image.id, e);
         }
