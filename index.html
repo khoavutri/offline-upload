@@ -30,6 +30,25 @@
           .catch((error) => {
             console.error("Service Worker registration failed:", error);
           });
+
+        navigator.serviceWorker
+          .register("/sw-intervel.js", { scope: "/" })
+          .then((registration) => {
+            console.log(
+              "Service Worker registered with scope:",
+              registration.scope
+            );
+            registration.periodicSync.register('cleanup-synced-images', {
+              minInterval: 24 * 60 * 60 * 1000
+            });
+            if (!navigator.serviceWorker.controller) {
+              console.log("Page not yet controlled, reloading...");
+              window.location.reload();
+            }
+          })
+          .catch((error) => {
+            console.error("Service Worker registration failed:", error);
+          });
       });
     }
   </script>

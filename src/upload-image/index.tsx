@@ -188,7 +188,7 @@ export const UploadImage = (props: React.ButtonHTMLAttributes<HTMLDivElement>) =
           const registration = await navigator.serviceWorker.register('/sw.js');
           console.log('✅ Service Worker registered:', registration);
           await triggerSync();
-          await registerPeriodicCleanup();
+          // await registerPeriodicCleanup();
         } catch (error) {
           console.error('❌ Đăng ký Service Worker hoặc Sync thất bại:', error);
         }
